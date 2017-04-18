@@ -34,15 +34,21 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.identity.intents.Address;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -62,19 +68,23 @@ import java.util.List;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleMap mMap;
+    private static final int REQUEST_PLACE_PICKER = 1;
+    private static final int PLACE_PICKER_REQUEST = 1;
     private GoogleApiClient apiClient;
     private Context context;
     private LocationManager locationManager;
     private Location lastLocation;
     private boolean granted = false;
     private AlertDialog alertDialog_reason;
-    private FloatingActionButton floatingActionButton;
+    private FloatingActionButton floatingActionButton,floatingActionButton2;
     private static final int permission = 0;
     private View mView;
     private LatLng origin, destination;
     private String distance = "", duration = "", addressInText = "";
     private MarkerOptions markerOptions1;
     private MarkerOptions markerOptions2;
+    private static final LatLngBounds BOUNDS_MOUNTAIN_VIEW = new LatLngBounds(
+            new LatLng(37.398160, -122.180831), new LatLng(37.430610, -121.972090));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,7 +160,98 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+        floatingActionButton2 = (FloatingActionButton) findViewById(R.id.floatingActionButton_2);
+        floatingActionButton2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+               Toast.makeText(context,"Clicked",Toast.LENGTH_SHORT).show();
+                try {
+                    PlacePicker.IntentBuilder intentBuilder = new PlacePicker.IntentBuilder();
+                    Intent intent = intentBuilder.build((Activity)context);
+                    // Start the Intent by requesting a result, identified by a request code.
+                    startActivityForResult(intent, REQUEST_PLACE_PICKER);
+
+                    // Hide the pick option in the UI to prevent users from starting the picker
+                    // multiple times.
+
+                } catch (GooglePlayServicesRepairableException e) {
+                    GooglePlayServicesUtil
+                            .getErrorDialog(e.getConnectionStatusCode(), (Activity)context, 0);
+                } catch (GooglePlayServicesNotAvailableException e) {
+                    Toast.makeText(context, "Google Play Services is not available.",
+                            Toast.LENGTH_LONG)
+                            .show();
+                }
+
+                // END_INCLUDE(intent)
+            }
+        });
     }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // BEGIN_INCLUDE(activity_result)
+        if (requestCode == REQUEST_PLACE_PICKER) {
+            // This result is from the PlacePicker dialog.
+
+
+
+            if (resultCode == Activity.RESULT_OK) {
+                /* User has picked a place, extract data.
+                   Data is extracted from the returned intent by retrieving a Place object from
+                   the PlacePicker.
+                 */
+                final Place place = PlacePicker.getPlace(data, (Activity)context);
+
+                /* A Place object contains details about that place, such as its name, address
+                and phone number. Extract the name, address, phone number, place ID and place types.
+                 */
+                final CharSequence name = place.getName();
+                final CharSequence address = place.getAddress();
+                final CharSequence phone = place.getPhoneNumber();
+                final String placeId = place.getId();
+                String attribution = PlacePicker.getAttributions(data);
+                if (attribution == null) {
+                    attribution = "";
+                }
+
+                // Print data to debug log
+                Log.d("TAG", "Place selected: " + placeId + " (" + name.toString() + ")");
+
+                // Show the card.
+                //getCardStream().showCard(CARD_DETAIL);
+
+            } else {
+                // User has not selected a place, hide the card.
+            //    getCardStream().hideCard(CARD_DETAIL);
+            }
+
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+/*
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == REQUEST_PLACE_PICKER){
+
+        }
+
+        if (requestCode == PLACE_PICKER_REQUEST && resultCode == RESULT_OK){
+            final Place place = PlacePicker.getPlace(this,data);
+            final CharSequence name = place.getName();
+            final CharSequence address = place.getAddress();
+            String attributions  = (String) place.getAttributions();
+            if (attributions == null){
+                attributions = "";
+            }
+
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }*/
 
     // check the result for permisiion request
 
@@ -430,7 +531,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    /** A class to parse the Google Places in JSON format */
     private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String,String>>> >{
 
         // Parsing the data in non-ui thread
@@ -443,7 +543,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             try{
                 jObject = new JSONObject(jsonData[0]);
                 DirectionsParser parser = new DirectionsParser();
-
                 // Starts parsing data
                 routes = parser.parse(jObject);
             }catch(Exception e){

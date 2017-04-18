@@ -25,4 +25,19 @@
         android:layout_centerHorizontal="true"
         android:id="@+id/floatingActionButton" />
 
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        app:fabSize="mini"
+        android:background="@color/colorPrimary"
+        android:backgroundTint="@color/colorPrimary"
+        android:src="@drawable/ic_maps"
+        android:id="@+id/floatingActionButton_2"
+        android:layout_alignTop="@+id/floatingActionButton"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="11dp"
+        android:layout_marginEnd="11dp" />
+
 </RelativeLayout>
